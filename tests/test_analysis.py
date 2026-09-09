@@ -161,3 +161,31 @@ def test_worker_persists_success(monkeypatch):
     monkeypatch.setattr(AnalysisRepository,'finish',lambda self,job,**kwargs:finished.append(kwargs))
     process_job(MagicMock(),Settings(_env_file=None),JOB,Event())
     assert finished==[{'result':result}]
+
+
+@pytest.mark.parametrize('basis,expected', [('actual_confirmed','extracted'), ('planned','needs_input'), ('unknown','needs_input')])
+def test_actual_evidence_not_blanket_discarded(basis, expected):
+    item={**field('acceptance_date', '09/09/2026', 'Accepted on 09/09/2026'), 'basis':basis}
+    result=normalize({'fields':[item]},[SOURCE],{FID:'Accepted on 09/09/2026'})
+    assert result['fields'][0]['status']==expected
+
+
+def test_copy_counts_must_describe_target_report():
+    for basis,expected in [('explicit','needs_input'),('target_report','extracted')]:
+        item={**field('copy_count','2','Report has 2 copies'),'basis':basis}
+        result=normalize({'fields':[item]},[SOURCE],{FID:'Report has 2 copies'})
+        assert next(f for f in result['fields'] if f['name']=='copy_count')['status']==expected
+
+
+def test_whitespace_evidence_and_exact_subject():
+    item=field('service_description','(V/v: Robot training)','V/v: Robot training')
+    result=normalize({'fields':[item]},[SOURCE],{FID:'V/v:\nRobot\ttraining'})
+    assert next(f for f in result['fields'] if f['name']=='service_description')['value']=='Robot training'
+
+
+def test_payment_proof_requires_actual_basis():
+    source={**SOURCE,'document_type':'PAYMENT_PROOF'}
+    for basis,expected in [('planned','missing'),('actual_confirmed','extracted')]:
+        item={**field('paid_amount','123'),'basis':basis}
+        result=normalize({'fields':[item]},[source],{FID:'ETEC 123'})
+        assert next(f for f in result['fields'] if f['name']=='paid_amount')['status']==expected

@@ -73,7 +73,11 @@ Ví dụ rút gọn; thực tế trả đủ 24 trường. `status` của field:
 - PDF/JPG/PNG: gửi inline cho Gemini; không tạo public URL hay Google Files API object. Tối đa 300 trang PDF/ảnh tổng cộng; DOCX tối đa 200.000 ký tự/file, 300.000 ký tự/job.
 - Hash nội dung tải về phải khớp snapshot. Kiểm tra lại tài khoản, DOC_UPDATE, trạng thái hồ sơ và file trước khi gọi AI. Nếu file bị xóa/thay đổi trước lúc kiểm tra thì job thất bại. Xóa sau khi đã gửi không thu hồi dữ liệu đã gửi cho Google; không purge lịch sử ở đợt này.
 - Field có giá trị phải có nguồn thuộc snapshot. Với DOCX, quote phải xuất hiện nguyên văn trong văn bản đã đọc; không khớp thì bỏ bằng chứng. Trích dẫn ảnh/PDF chưa được kiểm chứng độc lập, cần user kiểm tra.
-- Ngày/nơi nghiệm thu, kết quả nghiệm thu, ngày thực hiện thực tế, chất lượng, số bản và remaining_amount luôn để người dùng nhập/xác nhận. paid_amount chỉ nhận nguồn nhóm PAYMENT_PROOF, không lấy từ lịch thanh toán trong hợp đồng. Chưa tự cộng nhiều chứng từ hay tính công nợ.
+- Ngày/nơi nghiệm thu, kết quả nghiệm thu, ngày thực hiện thực tế, chất lượng và remaining_amount được lấy khi AI xác định bằng chứng xác nhận thực tế (`basis=actual_confirmed`), nếu không thì needs_input. Đây là phân loại ngữ nghĩa của AI, không phải xác minh độc lập. Số bản phải nói về chính biên bản đích (`target_report`), không lấy số bản hợp đồng. Chưa tự áp dụng giá trị mặc định từ mẫu.
+- paid_amount cần nguồn PAYMENT_PROOF và actual_confirmed. Không lấy lịch thanh toán, tự cộng chứng từ hoặc tính công nợ.
+- service_description giữ nguyên nội dung sau “V/v:” trong hợp đồng, bỏ tiền tố và ngoặc bao ngoài, không mở rộng thành hạng mục.
+- Đối chiếu trích dẫn DOCX cho phép khác biệt khoảng trắng/Unicode NFC; không cho phép sửa nội dung trích dẫn. Kết quả vẫn là nháp cần kiểm tra. API FE và 24 trường giữ nguyên; basis là hướng dẫn/kiểm tra nội bộ.
+
 - Phát hiện mâu thuẫn dựa vào AI và được đánh dấu nếu model báo; không đảm bảo AI nhận diện mọi mâu thuẫn. Prompt xem nội dung tài liệu là dữ liệu không đáng tin, không làm theo lệnh trong tài liệu; không cấp công cụ hoặc khả năng truy cập URL cho model.
 
 ## Worker và lỗi

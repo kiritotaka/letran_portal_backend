@@ -23,6 +23,7 @@ class ExtractedField(BaseModel):
     value: str | None = Field(max_length=6000)
     sources: list[Evidence] = Field(max_length=10)
     conflict: bool
+    basis: Literal['explicit', 'actual_confirmed', 'target_report', 'planned', 'unknown'] = 'unknown'
 
 
 class ModelExtraction(BaseModel):

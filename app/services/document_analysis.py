@@ -1,6 +1,8 @@
 import base64
 import hashlib
 import json
+import re
+import unicodedata
 from io import BytesIO
 from typing import get_args
 from xml.etree import ElementTree as ET
@@ -56,6 +58,10 @@ def source_parts(snapshot,contents):
     return parts,text_sources
 
 
+def comparable_text(value):
+    return ' '.join(unicodedata.normalize('NFC', value).split())
+
+
 def normalize(raw,snapshot,text_sources):
     parsed=ModelExtraction.model_validate(raw)
     files={s['file_id']:s for s in snapshot}; fields={f.name:f for f in parsed.fields}
@@ -68,20 +74,26 @@ def normalize(raw,snapshot,text_sources):
             for s in f.sources:
                 fid=str(s.file_id)
                 if fid not in files: raise AnalysisFailure('AI_INVALID_SOURCE')
-                if fid in text_sources and s.quote not in text_sources[fid]:
+                if fid in text_sources and comparable_text(s.quote) not in comparable_text(text_sources[fid]):
                     warnings.append('UNVERIFIED_TEXT_EVIDENCE'); continue
                 evidence.append(s.model_dump(mode='json'))
         conflict=bool(f and f.conflict)
-        if name in MANUAL:
-            value=None; evidence=[]; status='needs_input'
-        elif conflict:
+        if conflict:
             value=None; status='conflict'
         elif value and evidence:
-            if name=='paid_amount' and not all(files[e['file_id']]['document_type']=='PAYMENT_PROOF' for e in evidence):
+            if name in MANUAL and (f.basis != ('target_report' if name in {'copy_count','copies_per_party'} else 'actual_confirmed')):
+                value=None; evidence=[]; status='needs_input'
+            elif name=='paid_amount' and not all(files[e['file_id']]['document_type']=='PAYMENT_PROOF' for e in evidence):
                 value=None; evidence=[];status='missing';warnings.append('PAYMENT_PROOF_REQUIRED')
+            elif name=='paid_amount' and f.basis != 'actual_confirmed':
+                value=None; evidence=[]; status='missing'
             else: status='extracted'
         else:
-            value=None; status='missing'
+            value=None; status='needs_input' if name in MANUAL else 'missing'
+        if name=='service_description' and value:
+            value=re.sub(r'^\s*\(?\s*V/v\s*:\s*', '', value, flags=re.IGNORECASE).strip()
+            if f.value.strip().startswith('(') and value.endswith(')'):
+                value=value[:-1].rstrip()
         result.append({'name':name,'value':value,'sources':evidence,'conflict':conflict,'status':status})
     return {'fields':result,'missing_fields':[f['name'] for f in result if f['value'] is None],
             'warnings':sorted(set(warnings)),'requires_review':True}
@@ -121,7 +133,24 @@ def extract(settings,model,parts,snapshot,text_sources,transport=None):
         'If sources disagree, mark conflict=true and value=null. Do not combine unrelated contracts. '
         'paid_amount requires actual payment proof, never the contractual payment schedule. '
         'Do not infer actual performance, acceptance or payment from planned obligations. '
-        'Use null for missing fields and all these manually supplied fields: '+','.join(sorted(MANUAL))+'. '
+        'Inspect all paragraphs, tables, headers and footers before marking a field missing. '
+        'service_description is EXACTLY the subject after V/v: in the economic contract, '
+        'excluding the V/v: prefix and enclosing parentheses; preserve its wording, never expand into line items. '
+        'Keep party A/B roles as labelled in the contract; never swap based on buyer/seller assumptions. '
+        'For each party read its own name, address, representative, position and phone; '
+        'do not copy the other party phone, fax, tax ID or a header contact with unclear ownership. '
+        'contract_total is the explicit final contract total including VAT, not a subtotal or installment. '
+        'Set basis=explicit for direct contract facts. Set basis=planned for future obligations. '
+        'Set basis=actual_confirmed ONLY for explicit evidence of events that actually occurred. '
+        'Acceptance date/place/statement, actual dates, service quality and remaining_amount may be filled '
+        'only with actual_confirmed evidence tied to this contract; never use signing date, company address, '
+        'planned schedule, quality requirements or arithmetic assumptions. '
+        'paid_amount also requires actual_confirmed evidence; do not sum possibly duplicate payment proofs. '
+        'copy_count and copies_per_party require basis=target_report and explicit counts for the acceptance '
+        'report itself, not counts of contract originals. No template defaults have been supplied. '
+        'Use null and basis=unknown when unsupported. Do not fill from general knowledge. '
+        'Quotes must include enough context to support the field, not just an isolated number or date. '
+        'Check all 24 fields once more for omissions, party mix-ups and unsupported assertions. '
         'Extract all 24 named fields. Completion/settlement/report-number boilerplate is outside this schema.'
     )
     body={'systemInstruction':{'parts':[{'text':instruction}]},
