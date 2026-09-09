@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from supabase import Client
 
 
@@ -27,3 +29,15 @@ class UserRepository:
             offset += len(rows)
         return sorted(codes)
 
+    def complete_password_change(self, user_id: str) -> None:
+        result = self.client.table("profiles").update({
+            "is_first_login": False,
+            "updated_by": user_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", user_id).execute()
+        if (
+            len(result.data) != 1
+            or str(result.data[0]["id"]) != user_id
+            or result.data[0]["is_first_login"] is not False
+        ):
+            raise RuntimeError("Profile update was not confirmed.")

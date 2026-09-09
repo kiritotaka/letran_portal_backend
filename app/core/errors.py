@@ -25,7 +25,7 @@ def error_response(status: int, code: str, message: str, headers=None):
     return JSONResponse(
         status_code=status,
         content={"error": {"code": code, "message": message}},
-        headers=headers,
+        headers={"Cache-Control": "no-store", **(headers or {})},
     )
 
 

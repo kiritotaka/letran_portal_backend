@@ -6,11 +6,11 @@ from app.repositories.users import UserRepository
 from app.schemas.auth import LoginData, LoginRequest, LoginResponse, LoginUser
 
 
-def login(payload: LoginRequest, auth_client: Client, repository: UserRepository) -> LoginResponse:
+def authenticate_password(email: str, password: str, auth_client: Client):
     try:
         result = auth_client.auth.sign_in_with_password({
-            "email": str(payload.email),
-            "password": payload.password.get_secret_value(),
+            "email": email,
+            "password": password,
         })
     except AuthApiError as exc:
         if exc.status == 429:
@@ -23,6 +23,11 @@ def login(payload: LoginRequest, auth_client: Client, repository: UserRepository
 
     if result.session is None or result.user is None:
         raise ServiceUnavailable("AUTH_UNAVAILABLE", "Authentication service is unavailable.")
+    return result
+
+
+def login(payload: LoginRequest, auth_client: Client, repository: UserRepository) -> LoginResponse:
+    result = authenticate_password(str(payload.email), payload.password.get_secret_value(), auth_client)
     try:
         profile = repository.get_profile(str(result.user.id))
         if profile is None:
@@ -46,4 +51,3 @@ def login(payload: LoginRequest, auth_client: Client, repository: UserRepository
         raise
     except Exception:
         raise ServiceUnavailable("PROFILE_UNAVAILABLE", "Account information is unavailable.") from None
-

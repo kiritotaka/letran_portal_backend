@@ -5,11 +5,15 @@
 Đã bổ sung `POST /api/v1/auth/login` qua Supabase Auth, với router/service/repository,
 request/response schemas và CORS POST. Xem [hợp đồng API và hướng dẫn FE/Render](docs/login.md).
 Các phần phase 1 bên dưới mô tả nền tảng ban đầu; phạm vi hiện tại đã thêm login.
-Chưa có API refresh/logout/me, đổi mật khẩu hoặc API danh sách/phân quyền nghiệp vụ.
+Đã bổ sung `POST /api/v1/auth/change-password` và `POST /api/v1/auth/change-password-first-login`.
+Xem [hợp đồng đổi mật khẩu và hướng dẫn FE](docs/change-password.md).
+Chưa có API refresh/logout/me hoặc API danh sách/phân quyền nghiệp vụ.
 
 File bổ sung: `app/api/v1/auth.py`, `app/schemas/auth.py`,
 `app/services/auth.py`, `app/repositories/__init__.py`, `app/repositories/users.py`,
 `tests/test_login.py`, `docs/login.md`.
+Đổi mật khẩu bổ sung `app/services/passwords.py`, `tests/test_passwords.py`,
+`docs/change-password.md`; tái sử dụng schemas/router/repository auth hiện có.
 
 Backend Python 3.12 + FastAPI, phase 1. Repository dự kiến: `kiritotaka/letran_portal_backend`.
 

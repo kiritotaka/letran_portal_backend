@@ -49,7 +49,7 @@ const { access_token, refresh_token, user } = body.data;
 Axios trả response thì đọc `response.data.data`; nếu interceptor đã trả body thì đọc `body.data`.
 
 FE hiện có xử lý `is_first_login=true` bằng chuyển trang đổi mật khẩu.
-Backend lần này chỉ trả cờ đó, chưa triển khai đổi mật khẩu; luồng này chưa hoàn tất.
+Backend đã có API đổi mật khẩu; xem [hướng dẫn đổi mật khẩu và cập nhật auto-login FE](change-password.md).
 Chưa có /auth/me, refresh, logout, hoặc các API danh sách được bảo vệ.
 Khi access token hết hạn, hiện cần đăng nhập lại. Quyền trong response phục vụ UI,
 không thay thế kiểm tra quyền server khi bổ sung API nghiệp vụ.
