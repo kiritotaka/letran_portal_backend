@@ -30,6 +30,8 @@ def change_password(
             raise ServiceUnavailable("PROFILE_UNAVAILABLE", "Account information is unavailable.") from None
         if profile is None:
             raise ApiError(403, "PROFILE_NOT_FOUND", "Account has no portal profile. Contact an administrator.")
+        if profile.get("isActive") is not True:
+            raise ApiError(403, "ACCOUNT_INACTIVE", "Account is inactive. Contact an administrator.")
         if first_login_only and profile["is_first_login"] is False:
             raise ApiError(409, "FIRST_LOGIN_ALREADY_COMPLETED", "Use the regular change-password endpoint.")
 

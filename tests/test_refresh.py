@@ -23,7 +23,7 @@ def refresh_clients(app):
                                 expires_in=3600, expires_at=2000000000),
     )
     db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
-        {"id": UID, "is_super_admin": False, "is_first_login": False},
+        {"id": UID, "isActive": True, "is_super_admin": False, "is_first_login": False},
     ]
     db.table.return_value.select.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
         SimpleNamespace(data=[{"permissions": {"permission_code": "users.read"}}]), SimpleNamespace(data=[]),
@@ -112,13 +112,13 @@ def test_real_sdk_refresh_grant_and_client_isolation(monkeypatch):
             return httpx.Response(200, json={
                 "access_token": "new-access", "refresh_token": "new-refresh",
                 "token_type": "bearer", "expires_in": 3600,
-                "user": {"id": UID, "email": "user@example.com", "aud": "authenticated",
+                "user": {"id": UID, "isActive": True, "email": "user@example.com", "aud": "authenticated",
                          "created_at": "2026-01-01T00:00:00Z", "app_metadata": {}, "user_metadata": {}},
             })
         assert request.url.path == "/rest/v1/profiles"
         assert request.headers["authorization"] == "Bearer test-service-key"
         assert request.url.params["id"] == f"eq.{UID}"
-        return httpx.Response(200, json=[{"id": UID, "is_super_admin": True, "is_first_login": False}])
+        return httpx.Response(200, json=[{"id": UID, "isActive": True, "is_super_admin": True, "is_first_login": False}])
     monkeypatch.setattr(service.httpx, "Client", lambda **kw: original(
         transport=httpx.MockTransport(handle), **kw,
     ))

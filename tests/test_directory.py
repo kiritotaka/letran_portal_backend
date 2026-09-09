@@ -19,7 +19,7 @@ def sdk(app):
     app.app.dependency_overrides[get_supabase_client] = lambda: client
     client.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id=UID))
     client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
-        {"id": UID, "is_super_admin": True, "is_first_login": False},
+        {"id": UID, "isActive": True, "is_super_admin": True, "is_first_login": False},
     ]
     return client
 
@@ -69,7 +69,7 @@ def test_invalid_pagination(app, client, sdk, query):
 def test_users_show_assigned_codes_not_admin_wildcard(app, client, sdk, monkeypatch):
     app.app.dependency_overrides[current_user] = lambda: Principal(id=UID, is_super_admin=True, permissions=[])
     monkeypatch.setattr(DirectoryRepository,"users",lambda *a:SimpleNamespace(
-        data=[{"id":UID,"email":"user@example.com","is_super_admin":True,"is_first_login":False}],count=21))
+        data=[{"id":UID, "isActive": True,"email":"user@example.com","is_super_admin":True,"is_first_login":False}],count=21))
     monkeypatch.setattr(DirectoryRepository,"assigned_permissions",lambda *a:{UID:["USER_VIEW"]})
     response=client.get("/api/v1/users?page=2&page_size=20")
     assert response.status_code==200
@@ -87,19 +87,19 @@ def test_sdk_auth_query_and_batched_permissions(monkeypatch):
         seen.append(request)
         if request.url.path=="/auth/v1/user":
             assert request.headers["authorization"]=="Bearer user-access"
-            return httpx.Response(200,json={"id":UID,"email":"user@example.com","aud":"authenticated",
+            return httpx.Response(200,json={"id":UID, "isActive": True,"email":"user@example.com","aud":"authenticated",
                 "created_at":"2026-01-01T00:00:00Z","app_metadata":{},"user_metadata":{}})
         assert request.headers["authorization"]=="Bearer test-service-key"
         if request.url.path=="/rest/v1/profiles":
             if "id" in request.url.params:
                 assert request.url.params["id"]=="eq."+UID
-                return httpx.Response(200,json=[{"id":UID,"is_super_admin":True,"is_first_login":False}])
+                return httpx.Response(200,json=[{"id":UID, "isActive": True,"is_super_admin":True,"is_first_login":False}])
             assert request.url.params["offset"]=="0"
             assert request.url.params["limit"]=="20"
             assert request.url.params["order"]=="id.asc"
             assert "count=exact" in request.headers["prefer"]
             return httpx.Response(200,headers={"content-range":"0-0/1"},json=[
-                {"id":UID,"email":"user@example.com","is_super_admin":False,"is_first_login":False}])
+                {"id":UID, "isActive": True,"email":"user@example.com","is_super_admin":False,"is_first_login":False}])
         if request.url.path=="/rest/v1/user_permissions":
             assert UID in request.url.params["user_id"]
             rows=[{"user_id":UID,"permission_id":1,"permissions":{"permission_code":"USER_VIEW"}}]

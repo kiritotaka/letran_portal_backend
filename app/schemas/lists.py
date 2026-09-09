@@ -40,6 +40,7 @@ class PermissionItem(BaseModel):
 class UserItem(BaseModel):
     id: UUID
     email: str
+    is_active: bool
     is_super_admin: bool
     is_first_login: bool
     created_at: datetime | None = None

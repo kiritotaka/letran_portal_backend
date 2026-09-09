@@ -23,7 +23,7 @@ def login_clients(app):
                                 expires_in=3600, expires_at=2000000000),
     )
     db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [{
-        "id": USER_ID, "email": "user@example.com", "is_super_admin": False, "is_first_login": True,
+        "id": USER_ID, "isActive": True, "email": "user@example.com", "is_super_admin": False, "is_first_login": True,
     }]
     db.table.return_value.select.return_value.eq.return_value.order.return_value.range.return_value.execute.side_effect = [
         SimpleNamespace(data=[{"permissions": {"permission_code": "users.read"}}]),
@@ -115,13 +115,13 @@ def test_sdk_auth_and_data_clients_are_isolated(monkeypatch):
             return httpx.Response(200, json={
                 "access_token": "user-access-token", "refresh_token": "user-refresh-token",
                 "token_type": "bearer", "expires_in": 3600,
-                "user": {"id": USER_ID, "email": "user@example.com", "aud": "authenticated",
+                "user": {"id": USER_ID, "isActive": True, "email": "user@example.com", "aud": "authenticated",
                          "created_at": "2026-01-01T00:00:00Z", "app_metadata": {}, "user_metadata": {}},
             })
         if request.url.path == "/rest/v1/profiles":
             assert request.headers["authorization"] == "Bearer test-service-key"
             return httpx.Response(200, json=[{
-                "id": USER_ID, "email": "user@example.com",
+                "id": USER_ID, "isActive": True, "email": "user@example.com",
                 "is_super_admin": True, "is_first_login": False,
             }])
         raise AssertionError("Unexpected upstream request")

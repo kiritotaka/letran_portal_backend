@@ -36,11 +36,13 @@ def session_response(result, repository: UserRepository) -> LoginResponse:
         profile = repository.get_profile(str(result.user.id))
         if profile is None:
             raise ApiError(403, "PROFILE_NOT_FOUND", "Account has no portal profile. Contact an administrator.")
+        if profile.get("isActive") is not True:
+            raise ApiError(403, "ACCOUNT_INACTIVE", "Account is inactive. Contact an administrator.")
         is_admin = profile["is_super_admin"] is True
         permissions = ["*"] if is_admin else repository.get_permissions(str(result.user.id))
         user = LoginUser(
             id=result.user.id, email=result.user.email,
-            is_super_admin=is_admin,
+            is_super_admin=is_admin, is_active=True,
             is_first_login=profile["is_first_login"] is not False,
             permissions=permissions,
         )

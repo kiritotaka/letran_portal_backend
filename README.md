@@ -10,7 +10,10 @@ Xem [hợp đồng đổi mật khẩu và hướng dẫn FE](docs/change-passwo
 Đã có `POST /api/v1/auth/refresh`; xem [hướng dẫn refresh token](docs/refresh-token.md).
 Đã có GET /api/v1/users và GET /api/v1/permissions với Bearer auth, kiểm tra quyền,
 và phân trang. Xem [hợp đồng danh sách và checkbox mapping](docs/directory.md).
-Chưa có API logout/me hoặc thêm/sửa/xóa user.
+Đã có POST /users, PATCH /users/{user_id}, POST /users/{user_id}/deactivate.
+**Cần chạy migration function trước khi dùng API ghi**: xem [hướng dẫn quản trị user](docs/user-management.md).
+Login/refresh/danh sách user bổ sung `is_active`; tài khoản inactive bị chặn ở backend.
+Chưa có API logout/me hoặc xóa vĩnh viễn user.
 
 File bổ sung: `app/api/v1/auth.py`, `app/schemas/auth.py`,
 `app/services/auth.py`, `app/repositories/__init__.py`, `app/repositories/users.py`,
@@ -25,7 +28,7 @@ Backend Python 3.12 + FastAPI, phase 1. Repository dự kiến: `kiritotaka/letr
 - Cấu trúc module, cấu hình môi trường, Supabase Python SDK, CORS và JSON error handling.
 - `GET /api/v1/health`: liveness, không phụ thuộc Supabase.
 - `GET /api/v1/health/supabase`: kiểm tra quyền truy cập Data API tới bảng `profiles` hiện có bằng HEAD với limit 1; không trả profile rows, không count toàn bảng.
-- Không migration, không tạo/sửa table, column hoặc Auth users. Không triển khai auth, permission, Gemini chat hoặc mock API frontend.
+- Không tạo/sửa table hoặc column. Module quản trị user có migration function để ghi profile/quyền nguyên tử và tạo/cập nhật Auth users. Chưa triển khai Gemini chat.
 
 ## Chạy local
 
@@ -78,7 +81,7 @@ Lỗi kết nối/quyền/table không truy cập được trả 503 `SUPABASE_U
 - `app/core/errors.py`: lỗi JSON nhất quán cho 404/405, validation 422, dependency 503 và unexpected 500; không trả stack trace/input/secret. Log chỉ loại exception.
 - `app/services/supabase.py`: dependency tạo SDK client mỗi request cần Supabase; transport timeout 5 giây, được đóng sau request. Tắt auto-refresh/persist Auth session. Không gọi Auth API; chưa dùng shared client để tránh chia sẻ trạng thái Auth giữa request.
 - `app/schemas/`: response models và hợp đồng OpenAPI.
-- Chỉ thêm module khi có tính năng thật ở phase sau; chưa thêm ORM/repository layer vì hiện chỉ cần SDK và health probe.
+- Services xử lý nghiệp vụ, repositories truy cập Supabase; module quản trị dùng SQL RPC để cập nhật nhiều quyền trong cùng transaction, giữ HTTP handlers mỏng.
 
 ## Test
 

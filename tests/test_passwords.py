@@ -25,10 +25,10 @@ def password_clients(app):
     )
     auth.auth.update_user.return_value = SimpleNamespace(user=SimpleNamespace(id=UID))
     db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
-        {"id": UID, "is_first_login": True, "is_super_admin": False},
+        {"id": UID, "isActive": True, "is_first_login": True, "is_super_admin": False},
     ]
     db.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
-        {"id": UID, "is_first_login": False},
+        {"id": UID, "isActive": True, "is_first_login": False},
     ]
     app.app.dependency_overrides[get_auth_client] = lambda: auth
     app.app.dependency_overrides[get_supabase_client] = lambda: db
@@ -90,7 +90,7 @@ def test_wrong_password_blocks_all_writes(client, password_clients):
 def test_profile_precondition_blocks_password_write(client, password_clients, missing):
     auth, db = password_clients
     query = db.table.return_value.select.return_value.eq.return_value.limit.return_value.execute
-    query.return_value.data = [] if missing else [{"id": UID, "is_first_login": False}]
+    query.return_value.data = [] if missing else [{"id": UID, "isActive": True, "is_first_login": False}]
     response = client.post(FIRST, json=BODY)
     assert response.status_code == (403 if missing else 409)
     auth.auth.update_user.assert_not_called()
@@ -100,7 +100,7 @@ def test_profile_precondition_blocks_password_write(client, password_clients, mi
 
 def test_regular_change_allows_completed_first_login(client, password_clients):
     password_clients[1].table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [
-        {"id": UID, "is_first_login": False},
+        {"id": UID, "isActive": True, "is_first_login": False},
     ]
     assert client.post(REGULAR, json=BODY).status_code == 200
 
@@ -158,7 +158,7 @@ def test_real_sdk_request_order_identity_and_credentials(monkeypatch):
     import app.services.supabase as service
     original = httpx.Client
     calls = []
-    auth_user = {"id": UID, "email": BODY["email"], "aud": "authenticated",
+    auth_user = {"id": UID, "isActive": True, "email": BODY["email"], "aud": "authenticated",
                  "created_at": "2026-01-01T00:00:00Z", "app_metadata": {}, "user_metadata": {}}
     def handle(request):
         calls.append((request.method, request.url.path))
@@ -181,12 +181,12 @@ def test_real_sdk_request_order_identity_and_credentials(monkeypatch):
             assert request.headers["authorization"] == "Bearer test-service-key"
             assert request.url.params["id"] == f"eq.{UID}"
             if request.method == "GET":
-                return httpx.Response(200, json=[{"id": UID, "is_first_login": True}])
+                return httpx.Response(200, json=[{"id": UID, "isActive": True, "is_first_login": True}])
             assert request.method == "PATCH"
             values = json.loads(request.content)
             assert values["updated_by"] == UID
             assert values["is_first_login"] is False
-            return httpx.Response(200, json=[{"id": UID, "is_first_login": False}])
+            return httpx.Response(200, json=[{"id": UID, "isActive": True, "is_first_login": False}])
         raise AssertionError("Unexpected request")
     monkeypatch.setattr(service.httpx, "Client", lambda **kw: original(
         transport=httpx.MockTransport(handle), **kw,

@@ -15,7 +15,7 @@ class DirectoryRepository:
 
     def users(self, params: PaginationParams):
         return self.client.table("profiles").select(
-            "id,email,is_super_admin,is_first_login,created_at,updated_at", count="exact",
+            "id,email,isActive,is_super_admin,is_first_login,created_at,updated_at", count="exact",
         ).order("id").range(params.offset, params.offset + params.page_size - 1).execute()
 
     def assigned_permissions(self, user_ids: list[str]) -> dict[str, list[str]]:

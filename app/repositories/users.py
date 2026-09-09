@@ -9,7 +9,7 @@ class UserRepository:
 
     def get_profile(self, user_id: str):
         result = self.client.table("profiles").select(
-            "id,email,is_super_admin,is_first_login"
+            "id,email,isActive,is_super_admin,is_first_login"
         ).eq("id", user_id).limit(1).execute()
         return result.data[0] if result.data else None
 

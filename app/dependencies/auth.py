@@ -41,6 +41,8 @@ def current_user(
         profile = repository.get_profile(str(result.user.id))
         if profile is None:
             raise ApiError(403, "PROFILE_NOT_FOUND", "Portal profile is unavailable.")
+        if profile.get("isActive") is not True:
+            raise ApiError(403, "ACCOUNT_INACTIVE", "Account is inactive. Contact an administrator.")
         if profile["is_first_login"] is not False:
             raise ApiError(403, "PASSWORD_CHANGE_REQUIRED", "Change your initial password before accessing this API.")
         admin = profile["is_super_admin"] is True

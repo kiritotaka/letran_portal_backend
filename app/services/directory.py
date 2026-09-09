@@ -34,6 +34,7 @@ def list_users(params: PaginationParams, repo: DirectoryRepository) -> ListRespo
         items = [
             UserItem(
                 **{k: row.get(k) for k in ("id", "email", "created_at", "updated_at")},
+                is_active=row.get("isActive") is True,
                 is_super_admin=row["is_super_admin"] is True,
                 is_first_login=row["is_first_login"] is not False,
                 permissions=assigned[str(row["id"])],

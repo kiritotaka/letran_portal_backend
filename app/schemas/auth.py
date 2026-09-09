@@ -25,6 +25,7 @@ class RefreshRequest(BaseModel):
 class LoginUser(BaseModel):
     id: UUID
     email: EmailStr
+    is_active: bool
     is_super_admin: bool
     is_first_login: bool
     permissions: list[str]
