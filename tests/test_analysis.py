@@ -189,3 +189,36 @@ def test_payment_proof_requires_actual_basis():
         item={**field('paid_amount','123'),'basis':basis}
         result=normalize({'fields':[item]},[source],{FID:'ETEC 123'})
         assert next(f for f in result['fields'] if f['name']=='paid_amount')['status']==expected
+
+
+
+def test_request_template_url_uses_assigned_version(client,sdk,monkeypatch):
+    from app.repositories.documents import DocumentRepository
+    def one(self,table,id):
+        if table=='portal_document_requests': return {'template_id':FID}
+        assert str(id)==FID
+        return {'id':FID,'name':'Template','version':1,'output_format':'docx',
+                'is_active':False,'bucket':'portal_documents','object_path':'templates/v1.docx'}
+    monkeypatch.setattr(DocumentRepository,'one',one)
+    sdk.storage.from_.return_value.create_signed_url.return_value={'signedURL':'https://example.com/signed'}
+    r=client.get(f'/api/v1/document-requests/{RID}/template-url')
+    assert r.status_code==200
+    assert r.json()['data']['template_id']==FID
+    assert r.json()['data']['expires_in']==300
+    assert r.headers['cache-control']=='no-store'
+    sdk.storage.from_.return_value.create_signed_url.assert_called_once_with('templates/v1.docx',300)
+
+
+def test_template_url_requires_view_permission(app,client,sdk):
+    app.app.dependency_overrides[current_user]=lambda:Principal(id=UID,is_super_admin=False,permissions=['DOC_CREATE'])
+    assert client.get(f'/api/v1/document-requests/{RID}/template-url').status_code==403
+    sdk.storage.from_.assert_not_called()
+
+
+def test_template_url_without_assignment(client,sdk,monkeypatch):
+    from app.repositories.documents import DocumentRepository
+    monkeypatch.setattr(DocumentRepository,'one',lambda *args:{'template_id':None})
+    r=client.get(f'/api/v1/document-requests/{RID}/template-url')
+    assert r.status_code==404
+    assert r.json()['error']['code']=='TEMPLATE_NOT_ASSIGNED'
+    sdk.storage.from_.assert_not_called()

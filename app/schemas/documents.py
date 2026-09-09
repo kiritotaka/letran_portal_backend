@@ -124,3 +124,12 @@ T = TypeVar("T")
 class DocumentResponse(BaseModel, Generic[T]):
     success: Literal[True] = True
     data: T
+
+
+class TemplateUrlData(BaseModel):
+    template_id: UUID
+    name: str
+    version: int
+    output_format: str
+    url: str
+    expires_in: int

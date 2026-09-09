@@ -9,7 +9,7 @@ from app.dependencies.auth import Principal, require_any_permission
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (CatalogItem, CreateDocument, CreateRequest, DocumentItem,
     DocumentResponse, DownloadData, FileItem, FileOrder, LinkedFile, ReorderFile,
-    RequestItem, TemplateItem, UpdateRequest, RequestFilters, FileFilters)
+    RequestItem, TemplateItem, TemplateUrlData, UpdateRequest, RequestFilters, FileFilters)
 from app.schemas.health import ErrorResponse
 from app.schemas.lists import ListResponse, PaginationParams
 from app.services.directory import pagination
@@ -130,3 +130,27 @@ def delete_file(request_id: UUID, file_id: UUID, actor: Remover, client: SDK):
 @router.get("/document-requests/{request_id}/files/{file_id}/download-url", response_model=DocumentResponse[DownloadData])
 def download(request_id: UUID, file_id: UUID, actor: Viewer, client: SDK):
     return {"data": download_url(client, request_id, file_id)}
+
+
+@router.get("/document-requests/{request_id}/template-url", response_model=DocumentResponse[TemplateUrlData])
+def request_template_url(request_id: UUID, actor: Viewer, client: SDK):
+    repo = DocumentRepository(client)
+    request = repo.one("portal_document_requests", request_id)
+    if not request.get("template_id"):
+        raise ApiError(404, "TEMPLATE_NOT_ASSIGNED", "This request has no template.")
+    template = repo.one("portal_document_templates", request["template_id"])
+    path = template.get("object_path")
+    if not path:
+        raise ApiError(409, "TEMPLATE_FILE_NOT_READY", "Template file has not been uploaded.")
+    if template.get("bucket") != "portal_documents" or not path.startswith("templates/"):
+        raise ApiError(503, "TEMPLATE_STORAGE_INVALID", "Template storage configuration is invalid.")
+    try:
+        signed = client.storage.from_("portal_documents").create_signed_url(path, 300)
+        url = signed["signedURL"]
+        if not isinstance(url, str) or not url.startswith("https://"):
+            raise ValueError()
+    except Exception:
+        raise ApiError(503, "STORAGE_UNAVAILABLE", "Template URL is unavailable.") from None
+    return {"data": {"template_id": str(template["id"]), "name": template["name"],
+        "version": template["version"], "output_format": template["output_format"],
+        "url": url, "expires_in": 300}}

@@ -107,3 +107,14 @@ Không có kết quả fallback giả khi Gemini lỗi. Logs không ghi tài li�
 `python -m pytest` bao gồm validation đầu ra, bằng chứng giả, quyền route, trạng thái cấu hình, HTTP Gemini qua mock transport và worker lưu kết quả/lỗi. `node tests/documents_sql_checks.mjs` kiểm tra migration và queue/lease trong PGlite, không sửa Supabase thật. Test real Gemini dùng đoạn giả và đang bị 429 như ghi ở trên.
 
 Nguồn: [Gemini structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output), [document processing](https://ai.google.dev/gemini-api/docs/document-processing), [model catalog](https://ai.google.dev/gemini-api/docs/models).
+
+
+## Xem mẫu bên cạnh kết quả
+
+`GET /api/v1/document-requests/{request_id}/template-url`, Bearer token, DOC_VIEW.
+Trả data gồm template_id, name, version, output_format, url, expires_in (300 giây).
+Luôn dùng phiên bản template_id đã gắn với hồ sơ, kể cả phiên bản đó không còn active.
+Không thay bằng mẫu active mới nhất. Hồ sơ chưa gắn mẫu trả TEMPLATE_NOT_ASSIGNED (404);
+mẫu chưa có file trả TEMPLATE_FILE_NOT_READY (409). URL private có thời hạn, không lưu DB.
+FE gọi khi mở khung xem mẫu, gọi lại khi hết hạn. DOCX cần trình xem DOCX phía FE hoặc tải xuống;
+URL không tự chuyển Word thành PDF. Không chuyển URL tới dịch vụ xem tài liệu bên thứ ba mặc định.
