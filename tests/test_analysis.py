@@ -171,7 +171,7 @@ def test_actual_evidence_not_blanket_discarded(basis, expected):
 
 
 def test_copy_counts_must_describe_target_report():
-    for basis,expected in [('explicit','needs_input'),('target_report','extracted')]:
+    for basis,expected in [('explicit','extracted'),('target_report','extracted')]:
         item={**field('copy_count','2','Report has 2 copies'),'basis':basis}
         result=normalize({'fields':[item]},[SOURCE],{FID:'Report has 2 copies'})
         assert next(f for f in result['fields'] if f['name']=='copy_count')['status']==expected
@@ -222,3 +222,11 @@ def test_template_url_without_assignment(client,sdk,monkeypatch):
     assert r.status_code==404
     assert r.json()['error']['code']=='TEMPLATE_NOT_ASSIGNED'
     sdk.storage.from_.assert_not_called()
+
+
+@pytest.mark.parametrize('value,canonical,display', [('1101600000','1101600000','1,101,600,000'), ('1000.00','1000','1,000'), ('1000.50',None,None)])
+def test_vnd_display(value, canonical, display):
+    result=normalize({'fields':[field('contract_total',value)]},[SOURCE],{FID:'ETEC 123'})
+    item=next(f for f in result['fields'] if f['name']=='contract_total')
+    assert item['value']==canonical
+    assert item['display_value']==display

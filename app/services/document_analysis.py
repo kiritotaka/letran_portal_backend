@@ -81,7 +81,7 @@ def normalize(raw,snapshot,text_sources):
         if conflict:
             value=None; status='conflict'
         elif value and evidence:
-            if name in MANUAL and (f.basis != ('target_report' if name in {'copy_count','copies_per_party'} else 'actual_confirmed')):
+            if name in MANUAL and (f.basis not in ({'explicit','target_report'} if name in {'copy_count','copies_per_party'} else {'actual_confirmed'})):
                 value=None; evidence=[]; status='needs_input'
             elif name=='paid_amount' and not all(files[e['file_id']]['document_type']=='PAYMENT_PROOF' for e in evidence):
                 value=None; evidence=[];status='missing';warnings.append('PAYMENT_PROOF_REQUIRED')
@@ -94,7 +94,15 @@ def normalize(raw,snapshot,text_sources):
             value=re.sub(r'^\s*\(?\s*V/v\s*:\s*', '', value, flags=re.IGNORECASE).strip()
             if f.value.strip().startswith('(') and value.endswith(')'):
                 value=value[:-1].rstrip()
-        result.append({'name':name,'value':value,'sources':evidence,'conflict':conflict,'status':status})
+        display_value=value
+        if name in {'contract_total','paid_amount','remaining_amount'} and value:
+            if re.fullmatch(r'\d+(?:\.0+)?',value):
+                value=value.split('.')[0]
+                display_value=format(int(value), ',')
+            else:
+                value=None; display_value=None; status='needs_input'
+                warnings.append('INVALID_VND_AMOUNT')
+        result.append({'display_value':display_value,'name':name,'value':value,'sources':evidence,'conflict':conflict,'status':status})
     return {'fields':result,'missing_fields':[f['name'] for f in result if f['value'] is None],
             'warnings':sorted(set(warnings)),'requires_review':True}
 
@@ -146,8 +154,9 @@ def extract(settings,model,parts,snapshot,text_sources,transport=None):
         'only with actual_confirmed evidence tied to this contract; never use signing date, company address, '
         'planned schedule, quality requirements or arithmetic assumptions. '
         'paid_amount also requires actual_confirmed evidence; do not sum possibly duplicate payment proofs. '
-        'copy_count and copies_per_party require basis=target_report and explicit counts for the acceptance '
-        'report itself, not counts of contract originals. No template defaults have been supplied. '
+        'copy_count and copies_per_party: use explicit counts from the acceptance report if present; '
+        'otherwise reuse the contract copy counts as the user-approved business rule, with basis=explicit '
+        'and the contract clause as evidence. Never assume counts if absent. '
         'Use null and basis=unknown when unsupported. Do not fill from general knowledge. '
         'Quotes must include enough context to support the field, not just an isolated number or date. '
         'Check all 24 fields once more for omissions, party mix-ups and unsupported assertions. '

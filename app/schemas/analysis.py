@@ -38,6 +38,7 @@ class ModelExtraction(BaseModel):
 
 
 class ReviewedField(ExtractedField):
+    display_value: str | None = None
     status: Literal['extracted','missing','needs_input','conflict']
 
 

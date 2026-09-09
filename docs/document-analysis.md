@@ -73,7 +73,7 @@ Ví dụ rút gọn; thực tế trả đủ 24 trường. `status` của field:
 - PDF/JPG/PNG: gửi inline cho Gemini; không tạo public URL hay Google Files API object. Tối đa 300 trang PDF/ảnh tổng cộng; DOCX tối đa 200.000 ký tự/file, 300.000 ký tự/job.
 - Hash nội dung tải về phải khớp snapshot. Kiểm tra lại tài khoản, DOC_UPDATE, trạng thái hồ sơ và file trước khi gọi AI. Nếu file bị xóa/thay đổi trước lúc kiểm tra thì job thất bại. Xóa sau khi đã gửi không thu hồi dữ liệu đã gửi cho Google; không purge lịch sử ở đợt này.
 - Field có giá trị phải có nguồn thuộc snapshot. Với DOCX, quote phải xuất hiện nguyên văn trong văn bản đã đọc; không khớp thì bỏ bằng chứng. Trích dẫn ảnh/PDF chưa được kiểm chứng độc lập, cần user kiểm tra.
-- Ngày/nơi nghiệm thu, kết quả nghiệm thu, ngày thực hiện thực tế, chất lượng và remaining_amount được lấy khi AI xác định bằng chứng xác nhận thực tế (`basis=actual_confirmed`), nếu không thì needs_input. Đây là phân loại ngữ nghĩa của AI, không phải xác minh độc lập. Số bản phải nói về chính biên bản đích (`target_report`), không lấy số bản hợp đồng. Chưa tự áp dụng giá trị mặc định từ mẫu.
+- Ngày/nơi nghiệm thu, kết quả nghiệm thu, ngày thực hiện thực tế, chất lượng và remaining_amount được lấy khi AI xác định bằng chứng xác nhận thực tế (`basis=actual_confirmed`), nếu không thì needs_input. Đây là phân loại ngữ nghĩa của AI, không phải xác minh độc lập. Số bản ưu tiên biên bản đích (`target_report`); nếu chưa có, lấy số bản hợp đồng có bằng chứng (`explicit`) theo quy tắc người dùng. Chưa tự áp dụng giá trị mặc định từ mẫu.
 - paid_amount cần nguồn PAYMENT_PROOF và actual_confirmed. Không lấy lịch thanh toán, tự cộng chứng từ hoặc tính công nợ.
 - service_description giữ nguyên nội dung sau “V/v:” trong hợp đồng, bỏ tiền tố và ngoặc bao ngoài, không mở rộng thành hạng mục.
 - Đối chiếu trích dẫn DOCX cho phép khác biệt khoảng trắng/Unicode NFC; không cho phép sửa nội dung trích dẫn. Kết quả vẫn là nháp cần kiểm tra. API FE và 24 trường giữ nguyên; basis là hướng dẫn/kiểm tra nội bộ.
@@ -118,3 +118,5 @@ Không thay bằng mẫu active mới nhất. Hồ sơ chưa gắn mẫu trả T
 mẫu chưa có file trả TEMPLATE_FILE_NOT_READY (409). URL private có thời hạn, không lưu DB.
 FE gọi khi mở khung xem mẫu, gọi lại khi hết hạn. DOCX cần trình xem DOCX phía FE hoặc tải xuống;
 URL không tự chuyển Word thành PDF. Không chuyển URL tới dịch vụ xem tài liệu bên thứ ba mặc định.
+
+Tiền VND: value giữ chuỗi số nguyên; display_value thêm dấu phẩy phân nhóm, ví dụ 1,101,600,000. FE dùng display_value để hiển thị, value để nhập/lưu. Số tiền có phần lẻ khác 0 cần kiểm tra, không tự làm tròn. Ngày/nơi nghiệm thu không lấy mặc định từ hợp đồng.
