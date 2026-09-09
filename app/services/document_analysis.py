@@ -87,6 +87,29 @@ def normalize(raw,snapshot,text_sources):
             'warnings':sorted(set(warnings)),'requires_review':True}
 
 
+def gemini_response_schema():
+    """Translate to Gemini's responseSchema subset; validate full constraints locally."""
+    schema = ModelExtraction.model_json_schema()
+
+    def convert(node):
+        if isinstance(node, list):
+            return [convert(item) for item in node]
+        if not isinstance(node, dict):
+            return node
+        if '$ref' in node:
+            return convert(schema['$defs'][node['$ref'].split('/')[-1]])
+        if 'anyOf' in node:
+            choices = [item for item in node['anyOf'] if item.get('type') != 'null']
+            if len(choices) != 1:
+                raise ValueError('Unsupported schema union')
+            return {**convert(choices[0]), 'nullable': True}
+        omitted = {'$defs', 'format', 'additionalProperties', 'title',
+                   'maxLength', 'minLength', 'maxItems'}
+        return {key: convert(value) for key, value in node.items() if key not in omitted}
+
+    return convert(schema)
+
+
 def extract(settings,model,parts,snapshot,text_sources,transport=None):
     instruction=(
         'Extract Vietnamese economic-contract data for an acceptance report. Return JSON only. '
@@ -104,7 +127,7 @@ def extract(settings,model,parts,snapshot,text_sources,transport=None):
     body={'systemInstruction':{'parts':[{'text':instruction}]},
           'contents':[{'role':'user','parts':parts}],
           'generationConfig':{'temperature':0,'maxOutputTokens':16000,
-             'responseMimeType':'application/json','responseJsonSchema':ModelExtraction.model_json_schema()}}
+             'responseMimeType':'application/json','responseSchema':gemini_response_schema()}}
     try:
         with httpx.Client(timeout=httpx.Timeout(120,connect=10),transport=transport) as http:
             response=http.post(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
@@ -112,6 +135,7 @@ def extract(settings,model,parts,snapshot,text_sources,transport=None):
         if response.status_code==429: raise AnalysisFailure('AI_RATE_LIMITED')
         if response.status_code in (401,403): raise AnalysisFailure('AI_CREDENTIALS_REJECTED')
         if response.status_code==404: raise AnalysisFailure('AI_MODEL_UNAVAILABLE')
+        if response.status_code==400: raise AnalysisFailure('AI_REQUEST_INVALID')
         if response.status_code!=200: raise AnalysisFailure('AI_PROVIDER_ERROR')
         if len(response.content)>2*1024*1024: raise AnalysisFailure('AI_INVALID_RESPONSE')
         candidates=response.json().get('candidates',[])
