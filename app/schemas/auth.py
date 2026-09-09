@@ -10,6 +10,18 @@ class LoginRequest(BaseModel):
     password: SecretStr = Field(min_length=1, max_length=4096)
 
 
+class RefreshRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    refresh_token: SecretStr = Field(min_length=1, max_length=8192)
+
+    @model_validator(mode="after")
+    def validate_token(self):
+        token = self.refresh_token.get_secret_value()
+        if any(character.isspace() for character in token):
+            raise ValueError("Refresh token must not contain whitespace.")
+        return self
+
+
 class LoginUser(BaseModel):
     id: UUID
     email: EmailStr

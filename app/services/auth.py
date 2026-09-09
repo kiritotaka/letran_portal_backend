@@ -28,6 +28,10 @@ def authenticate_password(email: str, password: str, auth_client: Client):
 
 def login(payload: LoginRequest, auth_client: Client, repository: UserRepository) -> LoginResponse:
     result = authenticate_password(str(payload.email), payload.password.get_secret_value(), auth_client)
+    return session_response(result, repository)
+
+
+def session_response(result, repository: UserRepository) -> LoginResponse:
     try:
         profile = repository.get_profile(str(result.user.id))
         if profile is None:

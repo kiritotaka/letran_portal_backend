@@ -8,9 +8,25 @@ from app.schemas.auth import ChangePasswordRequest, ChangePasswordResponse, Logi
 from app.schemas.health import ErrorResponse
 from app.services.auth import login
 from app.services.passwords import change_password
+from app.services.sessions import refresh_session
+from app.schemas.auth import RefreshRequest
 from app.services.supabase import get_auth_client, get_supabase_client
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/refresh", response_model=LoginResponse, responses={
+    code: {"model": ErrorResponse} for code in (401, 403, 422, 429, 503)
+})
+def refresh_endpoint(
+    payload: RefreshRequest,
+    response: Response,
+    auth_client: Annotated[Client, Depends(get_auth_client)],
+    data_client: Annotated[Client, Depends(get_supabase_client)],
+) -> LoginResponse:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return refresh_session(payload, auth_client, UserRepository(data_client))
 
 
 @router.post("/login", response_model=LoginResponse, responses={

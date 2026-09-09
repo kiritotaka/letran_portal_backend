@@ -7,7 +7,8 @@ request/response schemas và CORS POST. Xem [hợp đồng API và hướng dẫ
 Các phần phase 1 bên dưới mô tả nền tảng ban đầu; phạm vi hiện tại đã thêm login.
 Đã bổ sung `POST /api/v1/auth/change-password` và `POST /api/v1/auth/change-password-first-login`.
 Xem [hợp đồng đổi mật khẩu và hướng dẫn FE](docs/change-password.md).
-Chưa có API refresh/logout/me hoặc API danh sách/phân quyền nghiệp vụ.
+Đã có `POST /api/v1/auth/refresh`; xem [hướng dẫn refresh token](docs/refresh-token.md).
+Chưa có API logout/me hoặc API danh sách/phân quyền nghiệp vụ.
 
 File bổ sung: `app/api/v1/auth.py`, `app/schemas/auth.py`,
 `app/services/auth.py`, `app/repositories/__init__.py`, `app/repositories/users.py`,
