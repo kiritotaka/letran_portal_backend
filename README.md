@@ -1,5 +1,12 @@
 # Letran Portal Backend
 
+## Tài liệu và upload — đợt 1
+
+Đã thêm danh mục tác vụ/loại tài liệu, hồ sơ, nhóm tài liệu, upload JPG/PNG/PDF/DOCX,
+phân trang, sắp xếp và tải file private theo quyền DOC_*. Cần chạy migration
+`002_portal_documents.sql` trước khi sử dụng. Xem [hướng dẫn API, SQL và FE](docs/documents-upload.md).
+Chưa phân tích AI hoặc xuất Word; mẫu seed chưa active. File xóa mềm vẫn được giữ trên Storage.
+
 ## Cập nhật: Login API
 
 Đã bổ sung `POST /api/v1/auth/login` qua Supabase Auth, với router/service/repository,

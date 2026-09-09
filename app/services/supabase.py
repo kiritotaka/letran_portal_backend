@@ -22,7 +22,9 @@ def get_supabase_client(request: Request) -> Iterator[Client]:
     if settings.supabase_url is None or not key.strip():
         raise ServiceUnavailable("SUPABASE_NOT_CONFIGURED", "Supabase is not configured.")
     # Request-scoped transport is closed deterministically; no shared Auth session.
-    with httpx.Client(timeout=5.0) as transport:
+    # Uploads need a longer write/read window than small Auth/Data API requests.
+    timeout = httpx.Timeout(60.0, connect=5.0) if request.url.path.endswith("/files") and request.method == "POST" else 5.0
+    with httpx.Client(timeout=timeout) as transport:
         try:
             client = create_client(
                 str(settings.supabase_url).rstrip("/"),
