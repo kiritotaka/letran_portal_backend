@@ -3,6 +3,17 @@ from typing import Generic, Literal, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from app.schemas.lists import PaginationParams
+
+
+class RequestFilters(PaginationParams):
+    document_type_id: UUID | None = None
+    search: str = Field(default="", max_length=200)
+
+    @model_validator(mode="after")
+    def trim_search(self):
+        self.search = self.search.strip()
+        return self
 
 
 class Input(BaseModel):

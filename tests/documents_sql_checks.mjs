@@ -58,5 +58,25 @@ try {
  await assert.rejects(db.query('select * from public.portal_files'),/permission denied/);
  await assert.rejects(call('create_request',{task_id:task,title:'No'}),/permission denied/);
  await db.exec('reset role');
+ await db.exec(await readFile(new URL('../migrations/003_document_search.sql',import.meta.url),'utf8'));
+ const search=async(type,text)=>(await db.query('select id from portal_search_document_requests($1,$2)',[type,text])).rows;
+ assert.deepEqual(await search(type,'contract'),[{id:req.id}]);
+ assert.deepEqual(await search(type,'TEST'),[{id:req.id}]);
+ assert.equal((await search(null,'Member')).length,1);
+ assert.equal((await search(randomUUID(),'')).length,0);
+ assert.equal((await search(null,'%')).length,0);
+ assert.equal((await search(null,"' OR true --")).length,0);
+ assert.equal((await search(null,'   ')).length,3);
+ const otherType=(await db.query('select id from portal_document_types where id<>$1 limit 1',[type])).rows[0].id;
+ await call('create_document',{request_id:req2.id,document_type_id:type,title:'First'});
+ await call('create_document',{request_id:req2.id,document_type_id:type,title:'First copy'});
+ await call('create_document',{request_id:req2.id,document_type_id:otherType,title:'Invoice'});
+ assert.equal((await search(type,'First')).length,1); // no duplicate requests
+ assert.equal((await search(type,'Invoice')).length,0); // same document must match
+ assert.equal((await db.query('select count(*)::int n from portal_search_document_requests($1,$2)',[type,''])).rows[0].n,2);
+ assert.equal((await db.query('select id from portal_search_document_requests($1,$2) order by created_at desc,id limit 1 offset 1',[type,''])).rows.length,1);
+ await db.exec('set role authenticated');
+ await assert.rejects(search(null,''),/permission denied/);
+ await db.exec('reset role');
  console.log('Documents SQL passed: creation, retries, mismatch, rollback, limits, archive, RLS, shared bucket isolation.');
 } finally { await db.close(); }

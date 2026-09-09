@@ -29,6 +29,23 @@ class DocumentRepository:
             "p_actor_id": str(actor.id), "p_action": action, "p_data": data,
         })).data
 
+    def requests(self, params):
+        if not params.search and params.document_type_id is None:
+            return self.page("portal_document_requests", params, order="created_at", desc=True)
+        query = self.client.rpc("portal_search_document_requests", {
+            "p_document_type_id": str(params.document_type_id) if params.document_type_id else None,
+            "p_search": params.search,
+        }, count="exact")
+        try:
+            return query.order("created_at", desc=True).order("id").range(
+                params.offset, params.offset + params.page_size - 1).execute()
+        except APIError as exc:
+            if exc.code == "PGRST202":
+                raise ApiError(503, "DOCUMENT_SEARCH_NOT_INSTALLED", "Install migration 003_document_search.sql first.") from None
+            raise ApiError(503, "DOCUMENTS_UNAVAILABLE", "Document search is unavailable.") from None
+        except Exception:
+            raise ApiError(503, "DOCUMENTS_UNAVAILABLE", "Document search is unavailable.") from None
+
     def one(self, table, id):
         rows = execute(self.client.table(table).select("*").eq("id", str(id)).limit(1)).data
         if not rows:

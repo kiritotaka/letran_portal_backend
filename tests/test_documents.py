@@ -163,6 +163,28 @@ def test_bad_pagination_and_body(client,sdk):
     assert client.post('/api/v1/document-requests',json={'task_id':DID,'title':'   '}).status_code==422
 
 
+@pytest.mark.parametrize('query',['document_type_id=bad','search='+('x'*201),'page=0'])
+def test_search_validation(client,sdk,query):
+    assert client.get('/api/v1/document-requests?'+query).status_code==422
+    sdk.rpc.assert_not_called()
+
+
+def test_search_parameters_and_pagination(client,sdk):
+    sdk.rpc.return_value.order.return_value.order.return_value.range.return_value.execute.return_value=SimpleNamespace(data=[],count=31)
+    response=client.get('/api/v1/document-requests',params={'document_type_id':DID,'search':'  ETEC  ','page':2,'page_size':5})
+    assert response.status_code==200
+    sdk.rpc.assert_called_once_with('portal_search_document_requests',{'p_document_type_id':DID,'p_search':'ETEC'},count='exact')
+    sdk.rpc.return_value.order.return_value.order.return_value.range.assert_called_once_with(5,9)
+    assert response.json()['data']['pagination']['total']==31
+
+
+def test_missing_search_migration(client,sdk):
+    sdk.rpc.return_value.order.return_value.order.return_value.range.return_value.execute.side_effect=APIError({'message':'missing','code':'PGRST202','hint':None,'details':None})
+    response=client.get('/api/v1/document-requests?search=test')
+    assert response.status_code==503
+    assert response.json()['error']['code']=='DOCUMENT_SEARCH_NOT_INSTALLED'
+
+
 def test_cors_upload_key(client):
     response=client.options(PATH,headers={'Origin':'http://localhost:5173','Access-Control-Request-Method':'POST',
         'Access-Control-Request-Headers':'authorization,idempotency-key,content-type'})

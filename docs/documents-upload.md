@@ -52,6 +52,19 @@ Tất cả danh sách phân trang `page=1&page_size=20`, tối đa 100/page. Res
 
 ## FE: luồng mẫu
 
+### Lọc danh sách hồ sơ
+
+Chạy migration `003_document_search.sql` sau 002 để bật tìm kiếm/lọc. Function chỉ đọc, không thêm bảng/cột.
+
+`GET /api/v1/document-requests?page=1&page_size=5&document_type_id=<UUID>&search=ETEC`
+
+- `document_type_id` tùy chọn: UUID từ GET /document-types; chọn tất cả thì bỏ tham số, không gửi chuỗi rỗng.
+- `search` tùy chọn, tối đa 200 ký tự: tìm chứa chuỗi trong tên hồ sơ hoặc tên nhóm tài liệu. Bỏ khoảng trắng đầu/cuối, không phân biệt hoa/thường; vẫn phân biệt dấu tiếng Việt. Không tìm tên file vật lý. Ký tự `%`, `_` được tìm nguyên văn.
+- Khi có cả hai: hồ sơ phải chứa nhóm thuộc loại đã chọn; tên hồ sơ khớp hoặc tên một nhóm thuộc chính loại đó khớp. Nhóm chưa upload file vẫn được tính.
+- Mỗi hồ sơ chỉ xuất hiện một lần. Tổng số và phân trang áp dụng sau bộ lọc. UUID hợp lệ nhưng không có kết quả trả danh sách rỗng, không trả 404.
+- FE đổi bộ lọc/từ khóa thì reset page=1; debounce khoảng 300 ms và hủy/bỏ response cũ khi user gõ tiếp. Không lọc riêng dữ liệu của trang hiện tại.
+- Không truyền bộ lọc vẫn chạy API cũ; nếu có bộ lọc nhưng chưa cài SQL 003, trả 503 DOCUMENT_SEARCH_NOT_INSTALLED.
+
 1. GET /document-tasks và /document-types, lấy UUID tương ứng.
 2. POST /document-requests:
 

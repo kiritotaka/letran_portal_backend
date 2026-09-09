@@ -9,7 +9,7 @@ from app.dependencies.auth import Principal, require_any_permission
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (CatalogItem, CreateDocument, CreateRequest, DocumentItem,
     DocumentResponse, DownloadData, FileItem, FileOrder, LinkedFile, ReorderFile,
-    RequestItem, TemplateItem, UpdateRequest)
+    RequestItem, TemplateItem, UpdateRequest, RequestFilters)
 from app.schemas.health import ErrorResponse
 from app.schemas.lists import ListResponse, PaginationParams
 from app.services.directory import pagination
@@ -61,8 +61,8 @@ def create_request(payload: CreateRequest, actor: Creator, client: SDK):
 
 
 @router.get("/document-requests", response_model=ListResponse[RequestItem])
-def requests(actor: Viewer, client: SDK, params: Page):
-    return page_result(DocumentRepository(client).page("portal_document_requests", params, order="created_at", desc=True), params)
+def requests(actor: Viewer, client: SDK, params: Annotated[RequestFilters, Query()]):
+    return page_result(DocumentRepository(client).requests(params), params)
 
 
 @router.get("/document-requests/{request_id}", response_model=DocumentResponse[RequestItem])
