@@ -1,6 +1,6 @@
 # Phân tích tài liệu — đợt 2
 
-API phân tích các file ready của một hồ sơ ACCEPTANCE_REPORT, trả dữ liệu nháp gồm 24 trường của mẫu đã duyệt. Chưa có API xác nhận/chỉnh sửa dữ liệu hoặc xuất Word. Không sửa nội dung file nguồn/mẫu. Không tự xác nhận nghiệm thu, hoàn thành hoặc thanh toán.
+API phân tích các file ready của một hồ sơ ACCEPTANCE_REPORT, trả dữ liệu nháp gồm 24 trường của mẫu đã duyệt. API lưu/xác nhận và xuất Word được mô tả trong [document-review-export.md](document-review-export.md). Không sửa nội dung file nguồn/mẫu. Không tự xác nhận nghiệm thu, hoàn thành hoặc thanh toán.
 
 ## Thiết lập
 

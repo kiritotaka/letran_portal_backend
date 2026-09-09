@@ -14,3 +14,6 @@ api_router.include_router(directory_router)
 api_router.include_router(user_management_router)
 api_router.include_router(documents_router)
 api_router.include_router(analysis_router)
+
+from app.api.v1.document_review import router as document_review_router
+api_router.include_router(document_review_router)

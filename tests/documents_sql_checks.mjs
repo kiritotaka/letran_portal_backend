@@ -110,4 +110,32 @@ try {
  await assert.rejects(db.query('select * from portal_document_jobs'),/permission denied/);
  await db.exec('reset role');
  console.log('Analysis SQL passed: authorization, readiness, deduplication, snapshots, claims, lease fencing, crash expiry.');
+ await db.exec(await readFile(new URL('../migrations/005_document_review.sql',import.meta.url),'utf8'));
+ const tid=(await db.query('select id from portal_document_templates limit 1')).rows[0].id;
+ await db.query("update portal_document_templates set object_path='templates/test.docx' where id=$1",[tid]);
+ await db.query('update portal_document_requests set template_id=$1 where id=$2',[tid,ar.id]);
+ const reviewKey=randomUUID();
+ const reviewPayload={analysis_job_id:jid,expected_revision:0,confirmed:false,
+ fields:Array.from({length:24},(_,i)=>({name:'test'+i,value:null}))};
+ const saveReview=async(key,p,actor=admin)=>(await db.query('select portal_save_document_review($1,$2,$3,$4) as r',[actor,ar.id,key,p])).rows[0].r;
+ await assert.rejects(saveReview(reviewKey,reviewPayload,member),/FORBIDDEN/);
+ const review=await saveReview(reviewKey,reviewPayload);
+ assert.equal(review.revision,1);
+ assert.equal((await saveReview(reviewKey,reviewPayload)).id,review.id);
+ await assert.rejects(saveReview(reviewKey,{...reviewPayload,confirmed:true}),/IDEMPOTENCY_CONFLICT/);
+ await assert.rejects(saveReview(randomUUID(),reviewPayload),/REVISION_CONFLICT/);
+ const record=async(id,path,hash)=>(await db.query('select portal_record_document_export($1,$2,$3,$4) as e',[admin,id,path,hash])).rows[0].e;
+ await assert.rejects(record(review.id,'bad','a'.repeat(64)),/REVIEW_NOT_CONFIRMED/);
+ const confirmed=await saveReview(randomUUID(),{...reviewPayload,expected_revision:1,confirmed:true});
+ const hash='a'.repeat(64), exportPath=`exports/${ar.id}/${confirmed.id}/${hash}.docx`;
+ await assert.rejects(record(confirmed.id,'bad',hash),/INVALID_INPUT/);
+ assert.equal((await record(confirmed.id,exportPath,hash)).object_path,exportPath);
+ assert.equal((await record(confirmed.id,exportPath,hash)).object_path,exportPath);
+ await call('update_request',{request_id:ar.id,status:'archived'});
+ await assert.rejects(saveReview(randomUUID(),{...reviewPayload,expected_revision:2}),/REQUEST_ARCHIVED/);
+ await db.exec('set role authenticated');
+ await assert.rejects(db.query('select * from portal_document_reviews'),/permission denied/);
+ await assert.rejects(db.query('select * from portal_document_exports'),/permission denied/);
+ await db.exec('reset role');
+ console.log('Review SQL passed: permissions, revision conflicts, immutable retries, export deduplication, archive and RLS.');
 } finally { await db.close(); }

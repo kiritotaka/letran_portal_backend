@@ -147,3 +147,7 @@ tests/test_health.py
 - [FastAPI: Bigger Applications](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
 - [Supabase Python: Initializing](https://supabase.com/docs/reference/python/initializing)
 - [Render Blueprint specification](https://render.com/docs/blueprint-spec)
+
+## Review and Word export
+
+Run migration `005_document_review.sql` and follow [review/export API guide](docs/document-review-export.md). Reviewed revisions are separate from AI output. No additional environment variables required.
