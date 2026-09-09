@@ -9,7 +9,7 @@ from app.dependencies.auth import Principal, require_any_permission
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (CatalogItem, CreateDocument, CreateRequest, DocumentItem,
     DocumentResponse, DownloadData, FileItem, FileOrder, LinkedFile, ReorderFile,
-    RequestItem, TemplateItem, UpdateRequest, RequestFilters)
+    RequestItem, TemplateItem, UpdateRequest, RequestFilters, FileFilters)
 from app.schemas.health import ErrorResponse
 from app.schemas.lists import ListResponse, PaginationParams
 from app.services.directory import pagination
@@ -100,7 +100,8 @@ def upload(request_id: UUID, document_id: UUID, actor: Creator, client: SDK,
 
 
 @router.get("/document-requests/{request_id}/files", response_model=ListResponse[LinkedFile])
-def files(request_id: UUID, actor: Viewer, client: SDK, params: Page, document_id: UUID | None = None):
+def files(request_id: UUID, actor: Viewer, client: SDK, params: Annotated[FileFilters, Query()]):
+    document_id = params.document_id
     repo = DocumentRepository(client)
     repo.one("portal_document_requests", request_id)
     filters = {"request_id": request_id}

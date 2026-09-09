@@ -157,6 +157,33 @@ def test_paginated_requests(client,sdk,monkeypatch):
     assert response.json()['data']['pagination']['has_next'] is True
 
 
+@pytest.mark.parametrize('document_id',[None,DID])
+def test_files_flat_query_parameters(client,sdk,monkeypatch,document_id):
+    monkeypatch.setattr(DocumentRepository,'one',lambda *a:{'request_id':RID})
+    seen=[]
+    def page(self,table,params,filters,**kwargs):
+        seen.append((params.page,params.page_size,filters))
+        return SimpleNamespace(data=[],count=0)
+    monkeypatch.setattr(DocumentRepository,'page',page)
+    query={'page':1,'page_size':100}
+    if document_id: query['document_id']=document_id
+    response=client.get(f'/api/v1/document-requests/{RID}/files',params=query)
+    assert response.status_code==200
+    assert seen[0][:2]==(1,100)
+    assert str(seen[0][2].get('document_id'))==str(document_id)
+
+
+def test_files_openapi_parameters(client):
+    parameters=client.get('/openapi.json').json()['paths']['/api/v1/document-requests/{request_id}/files']['get']['parameters']
+    assert {p['name'] for p in parameters}=={'request_id','page','page_size','document_id'}
+
+
+@pytest.mark.parametrize('query',[{'page_size':101},{'page':0},{'document_id':'invalid'}])
+def test_files_invalid_query(client,sdk,query):
+    assert client.get(f'/api/v1/document-requests/{RID}/files',params=query).status_code==422
+    sdk.table.assert_not_called()
+
+
 def test_bad_pagination_and_body(client,sdk):
     assert client.get('/api/v1/document-types?page_size=101').status_code==422
     assert client.patch(f'/api/v1/document-requests/{RID}',json={}).status_code==422

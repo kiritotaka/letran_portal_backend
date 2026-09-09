@@ -6,6 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.schemas.lists import PaginationParams
 
 
+class FileFilters(PaginationParams):
+    document_id: UUID | None = None
+
+
 class RequestFilters(PaginationParams):
     document_type_id: UUID | None = None
     search: str = Field(default="", max_length=200)
