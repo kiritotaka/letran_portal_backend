@@ -8,7 +8,9 @@ Các phần phase 1 bên dưới mô tả nền tảng ban đầu; phạm vi hi�
 Đã bổ sung `POST /api/v1/auth/change-password` và `POST /api/v1/auth/change-password-first-login`.
 Xem [hợp đồng đổi mật khẩu và hướng dẫn FE](docs/change-password.md).
 Đã có `POST /api/v1/auth/refresh`; xem [hướng dẫn refresh token](docs/refresh-token.md).
-Chưa có API logout/me hoặc API danh sách/phân quyền nghiệp vụ.
+Đã có GET /api/v1/users và GET /api/v1/permissions với Bearer auth, kiểm tra quyền,
+và phân trang. Xem [hợp đồng danh sách và checkbox mapping](docs/directory.md).
+Chưa có API logout/me hoặc thêm/sửa/xóa user.
 
 File bổ sung: `app/api/v1/auth.py`, `app/schemas/auth.py`,
 `app/services/auth.py`, `app/repositories/__init__.py`, `app/repositories/users.py`,
