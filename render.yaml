@@ -15,5 +15,6 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-# GEMINI_API_KEY is optional and unused; configure later in Render Environment.
-
+# Analysis is opt-in. After migration 004, set GEMINI_API_KEY,
+# GEMINI_MODEL=gemini-3.6-flash and ANALYSIS_WORKER_ENABLED=true in Render Environment.
+# The embedded worker runs only while this web service is awake.

@@ -1,4 +1,4 @@
-from pydantic import HttpUrl, SecretStr, field_validator
+from pydantic import Field, HttpUrl, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     supabase_url: HttpUrl | None = None
     supabase_service_role_key: SecretStr = SecretStr("")
     gemini_api_key: SecretStr = SecretStr("")
+    gemini_model: str = Field(default="gemini-3.6-flash", pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$")
+    analysis_worker_enabled: bool = False
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     @field_validator("supabase_url", mode="before")
@@ -42,4 +44,3 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> list[str]:
         return list(dict.fromkeys(x.strip() for x in self.cors_origins.split(",") if x.strip()))
-

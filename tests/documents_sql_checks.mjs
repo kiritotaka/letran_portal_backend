@@ -79,4 +79,35 @@ try {
  await assert.rejects(search(null,''),/permission denied/);
  await db.exec('reset role');
  console.log('Documents SQL passed: creation, retries, mismatch, rollback, limits, archive, RLS, shared bucket isolation.');
+ await db.exec(await readFile(new URL('../migrations/004_document_analysis.sql',import.meta.url),'utf8'));
+ const ar=await call('create_request',{task_id:task,title:'Analysis'});
+ const ad=await call('create_document',{request_id:ar.id,document_type_id:type,title:'Main contract'});
+ const enqueue=async(id=randomUUID(),actor=admin)=>(await db.query('select portal_enqueue_analysis($1,$2,$3,$4) as j',[actor,ar.id,id,'test-model'])).rows[0].j;
+ await assert.rejects(enqueue(undefined,member),/FORBIDDEN/);
+ await assert.rejects(enqueue(),/NO_SOURCE_FILES/);
+ const af={...data,request_id:ar.id,document_id:ad.id,file_id:randomUUID()};
+ await call('reserve_file',af);
+ await assert.rejects(enqueue(),/UPLOADS_PENDING/);
+ await call('complete_file',af);
+ const jid=randomUUID();const job=await enqueue(jid);
+ assert.equal(job.status,'queued');assert.equal(job.source_snapshot[0].file_id,af.file_id);
+ assert.equal((await enqueue(jid)).id,jid);
+ assert.equal((await enqueue()).id,jid); // one active job per request
+ const claimed=(await db.query('select portal_claim_analysis() as j')).rows[0].j;
+ assert.equal(claimed.id,jid);assert.equal(claimed.status,'processing');
+ assert.equal((await db.query('select portal_claim_analysis() as j')).rows[0].j,null);
+ const finish=async(token)=>(await db.query('select portal_finish_analysis($1,$2,$3,null) as ok',[jid,token,JSON.stringify({fields:[]})])).rows[0].ok;
+ assert.equal(await finish(randomUUID()),false);
+ assert.equal(await finish(claimed.lease_token),true);
+ assert.equal((await enqueue(jid)).status,'completed');
+ const second=await enqueue();assert.notEqual(second.id,jid);
+ await db.query('select portal_claim_analysis()');
+ await db.query("update portal_document_jobs set lease_until=now()-interval '1 minute' where id=$1",[second.id]);
+ await db.query('select portal_claim_analysis()');
+ assert.equal((await db.query('select error_code from portal_document_jobs where id=$1',[second.id])).rows[0].error_code,'WORKER_INTERRUPTED');
+ await db.exec('set role authenticated');
+ await assert.rejects(db.query('select portal_claim_analysis()'),/permission denied/);
+ await assert.rejects(db.query('select * from portal_document_jobs'),/permission denied/);
+ await db.exec('reset role');
+ console.log('Analysis SQL passed: authorization, readiness, deduplication, snapshots, claims, lease fencing, crash expiry.');
 } finally { await db.close(); }

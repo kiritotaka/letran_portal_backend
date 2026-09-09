@@ -1,5 +1,12 @@
 # Letran Portal Backend
 
+## Phân tích tài liệu — đợt 2
+
+Đã thêm POST /document-requests/{id}/jobs, GET /document-jobs/{id} và lịch sử jobs.
+Hàng đợi Supabase lưu trạng thái qua reload/restart; kết quả Gemini là dữ liệu nháp cần kiểm tra.
+Cần migration 004 và cấu hình Gemini/worker trước khi dùng. Xem [hướng dẫn phân tích và FE](docs/document-analysis.md).
+Chưa có API xác nhận hoặc xuất Word.
+
 ## Tài liệu và upload — đợt 1
 
 Đã thêm danh mục tác vụ/loại tài liệu, hồ sơ, nhóm tài liệu, upload JPG/PNG/PDF/DOCX,
