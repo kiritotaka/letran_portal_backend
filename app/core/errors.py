@@ -8,6 +8,13 @@ from starlette.exceptions import HTTPException
 logger = logging.getLogger(__name__)
 
 
+class ApiError(Exception):
+    def __init__(self, status: int, code: str, message: str):
+        self.status = status
+        self.code = code
+        self.message = message
+
+
 class ServiceUnavailable(Exception):
     def __init__(self, code: str, message: str):
         self.code = code
@@ -23,6 +30,10 @@ def error_response(status: int, code: str, message: str, headers=None):
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(ApiError)
+    async def api_error(request: Request, exc: ApiError):
+        return error_response(exc.status, exc.code, exc.message, {"Cache-Control": "no-store"})
+
     @app.exception_handler(ServiceUnavailable)
     async def unavailable(request: Request, exc: ServiceUnavailable):
         return error_response(503, exc.code, exc.message)
@@ -40,4 +51,3 @@ def register_error_handlers(app: FastAPI) -> None:
         # Do not log exception text: upstream errors can contain credentials.
         logger.error("Unhandled application error (%s)", type(exc).__name__)
         return error_response(500, "INTERNAL_ERROR", "An unexpected error occurred.")
-
