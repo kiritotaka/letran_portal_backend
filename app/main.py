@@ -31,7 +31,7 @@ def create_app(settings: Settings | None = None) -> CORSMiddleware:
         app=api,
         allow_origins=settings.allowed_origins,
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PATCH"],
+        allow_methods=["GET", "POST", "PATCH", "PUT"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
     )
 
