@@ -17,3 +17,6 @@ api_router.include_router(analysis_router)
 
 from app.api.v1.document_review import router as document_review_router
 api_router.include_router(document_review_router)
+
+from app.api.v1.files import router as files_router
+api_router.include_router(files_router)

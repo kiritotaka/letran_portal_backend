@@ -1,0 +1,38 @@
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
+const db=new PGlite();
+const admin='11111111-1111-4111-8111-111111111111', user='22222222-2222-4222-8222-222222222222', file='33333333-3333-4333-8333-333333333333';
+try {
+ await db.exec(await readFile(new URL('./user_management.sql',import.meta.url),'utf8'));
+ await db.exec(`create schema storage;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(bucket_id text);
+ alter table storage.objects enable row level security;
+ grant usage on schema storage to anon,authenticated; grant select on storage.objects to anon,authenticated;
+ create policy shared_policy on storage.objects for select to anon,authenticated using(true);
+ insert into storage.objects values ('portal_uploads'),('portal_documents'),('other_team');`);
+ await db.exec(await readFile(new URL('../migrations/008_shared_uploads.sql',import.meta.url),'utf8'));
+ const call=async(actor,action,data={})=>(await db.query('select portal_uploaded_file_action($1,$2,$3,$4) as f',[actor,action,file,data])).rows[0].f;
+ const data={purpose:'product_import',original_name:'test.csv',content_type:'text/csv',size_bytes:10,sha256:'a'.repeat(64)};
+ await assert.rejects(call(user,'reserve',data),/FORBIDDEN/);
+ const f=await call(admin,'reserve',data); assert.equal(f.status,'uploading');
+ assert.equal((await call(admin,'reserve',data)).id,file);
+ await assert.rejects(call(admin,'reserve',{...data,sha256:'b'.repeat(64)}),/IDEMPOTENCY_CONFLICT/);
+ await db.exec(`insert into permissions(id,permission_code) values(7,'PRODUCT_IMPORT');insert into user_permissions(user_id,permission_id) values('${user}',7);`);
+ await assert.rejects(call(user,'get'),/FILE_NOT_FOUND/);
+ await assert.rejects(call(user,'reserve',data),/IDEMPOTENCY_CONFLICT/);
+ assert.equal((await call(admin,'complete')).status,'ready');
+ assert.equal((await call(admin,'delete')).status,'deleted');
+ assert.equal((await call(admin,'delete')).status,'deleted');
+ await assert.rejects(call(admin,'complete'),/FILE_DELETED/);
+ await assert.rejects(call(admin,'reserve',data),/FILE_DELETED/);
+ await db.exec(`update profiles set "isActive"=false where id='${admin}'`);
+ await assert.rejects(call(admin,'get'),/FORBIDDEN/);
+ await db.exec('set role authenticated');
+ await assert.rejects(db.query('select * from portal_uploaded_files'),/permission denied/);
+ await assert.rejects(call(admin,'get'),/permission denied/);
+ assert.deepEqual((await db.query('select bucket_id from storage.objects order by bucket_id')).rows,[{bucket_id:'other_team'},{bucket_id:'portal_documents'}]);
+ console.log('Shared uploads SQL passed: permission, ownership, retries, tombstones, inactive users, RLS and other bucket isolation.');
+} finally { await db.close(); }
