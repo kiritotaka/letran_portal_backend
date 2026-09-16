@@ -42,7 +42,7 @@ Tất cả đường dẫn có tiền tố `/api/v1`; Bearer token bắt buộc,
 | PATCH | /document-requests/{request_id} | DOC_UPDATE |
 | POST | /document-requests/{request_id}/documents | DOC_CREATE |
 | GET | /document-requests/{request_id}/documents | DOC_VIEW |
-| POST | /document-requests/{request_id}/documents/{document_id}/files | DOC_CREATE |
+| POST | /document-requests/{request_id}/documents/{document_id}/files | DOC_CREATE hoặc bất kỳ quyền MECHANICAL_* (CREATE/UPDATE/REMOVE/VIEW) |
 | GET | /document-requests/{request_id}/files | DOC_VIEW |
 | PATCH | /document-requests/{request_id}/files/{file_id} | DOC_UPDATE |
 | POST | /document-requests/{request_id}/files/{file_id}/delete | DOC_REMOVE |
@@ -112,9 +112,9 @@ Tải lại trang: GET /files để biết file ready/uploading; trình duyệt 
 
 ## Trạng thái và giới hạn
 
-- JPG/JPEG, PNG, PDF, DOCX; 10 MiB/file (10,485,760 byte), body multipart tối đa 11 MiB. Server kiểm tra số byte thực tế, không chỉ Content-Length.
+- JPG/JPEG, PNG, PDF, DOCX, XLSX; 10 MiB/file (10,485,760 byte), body multipart tối đa 11 MiB. Server kiểm tra số byte thực tế, không chỉ Content-Length.
 - Tối đa 30 file chưa xóa và 30 nhóm/hồ sơ. Các reservation đang uploading cũng tính vào hạn mức.
-- Ảnh tối đa 25 triệu pixel; PDF không mã hóa, 1–200 trang; DOCX tối đa 2.000 ZIP entries, tổng giải nén 50 MiB, không VBA. Kiểm tra nội dung/định dạng cơ bản, không phải dịch vụ quét malware hoặc OCR/chấm chất lượng ảnh.
+- Ảnh tối đa 25 triệu pixel; PDF không mã hóa, 1–200 trang; DOCX/XLSX tối đa 2.000 ZIP entries, tổng giải nén 50 MiB, không VBA. Kiểm tra nội dung/định dạng cơ bản, không phải dịch vụ quét malware hoặc OCR/chấm chất lượng ảnh.
 - Uploading chưa có link tải. Lỗi upload giữ reservation để retry. `UPLOAD_UNCONFIRMED` hoặc `UPLOAD_FINALIZATION_UNCONFIRMED`: retry cùng file/key; không tự xóa object khi kết quả ghi chưa xác định.
 - PATCH hồ sơ với title hoặc status draft/archived. Archived chặn thêm nhóm/upload/sửa thứ tự/xóa file; DOC_UPDATE có thể mở lại draft. Người có DOC_VIEW vẫn xem/tải file ready của hồ sơ archived.
 - Delete là **xóa mềm**: chuyển deleted, chặn cấp URL mới, giữ object và audit. File đã xóa không thể hồi sinh bằng retry upload. URL đã cấp trước đó còn hiệu lực tối đa 5 phút. Chưa có purge tự động; object bị xóa mềm vẫn tính dung lượng. Chính sách lưu giữ/purge sẽ được chốt trước khi triển khai xóa vật lý; không xóa Storage trong một thao tác có thể đang upload song song.
