@@ -64,7 +64,7 @@ Chạy lệnh từ thư mục project, với Python 3.12 đã cài:
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
-.\.venv\Scripts\python.exe -m app.main
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 macOS/Linux dùng `.venv/bin/python` thay cho `.\.venv\Scripts\python.exe` và `cp .env.example .env`.

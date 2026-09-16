@@ -37,15 +37,3 @@ def create_app(settings: Settings | None = None) -> CORSMiddleware:
 
 
 app = create_app()
-
-
-if __name__ == "__main__":
-    import os
-    import uvicorn
-
-    uvicorn.run(
-        "app.main:app",
-        host="127.0.0.1",
-        port=int(os.environ.get("PORT", "8000")),
-        reload=True,
-    )

@@ -13,14 +13,7 @@ from app.repositories.documents import DocumentRepository
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MIMES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
-         ".pdf": "application/pdf", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-         ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
-OOXML_PARTS = {
-    ".docx": ("word/document.xml", "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}document",
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"),
-    ".xlsx": ("xl/workbook.xml", "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}workbook",
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"),
-}
+         ".pdf": "application/pdf", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
 
 
 def inspect_file(name, content):
@@ -50,7 +43,6 @@ def inspect_file(name, content):
             if pdf.is_encrypted or not 1 <= len(pdf.pages) <= 200:
                 raise ValueError()
         else:
-            main_part, main_tag, main_content_type = OOXML_PARTS[ext]
             with ZipFile(BytesIO(content)) as z:
                 entries = z.infolist()
                 if len(entries) > 2000 or sum(i.file_size for i in entries) > 50 * 1024 * 1024:
@@ -58,16 +50,16 @@ def inspect_file(name, content):
                 names = z.namelist()
                 if len(names) != len(set(names)) or any("vbaproject" in n.lower() for n in names):
                     raise ValueError()
-                doc = z.read(main_part)
+                doc = z.read("word/document.xml")
                 types = z.read("[Content_Types].xml")
                 if b"<!DOCTYPE" in doc.upper() or b"<!DOCTYPE" in types.upper():
                     raise ValueError()
                 root = ElementTree.fromstring(doc)
-                if root.tag != main_tag:
+                if root.tag != "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}document":
                     raise ValueError()
                 types_root = ElementTree.fromstring(types)
-                if not any(e.attrib.get("PartName") == "/" + main_part and
-                           e.attrib.get("ContentType") == main_content_type
+                if not any(e.attrib.get("PartName") == "/word/document.xml" and
+                           e.attrib.get("ContentType") == "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
                            for e in types_root):
                     raise ValueError()
     except Exception:
