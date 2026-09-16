@@ -1,5 +1,17 @@
 # Letran Portal Backend
 
+## Service files (module riêng cho phòng cơ khí)
+
+Module upload file độc lập, không liên quan tới `portal_documents`, theo cấu trúc request → file giống
+module documents: `portal_service_requests` → `portal_service_files`. Endpoints: `POST/GET
+/api/v1/service-requests`, `GET/PATCH /api/v1/service-requests/{request_id}`, `POST/GET
+/api/v1/service-requests/{request_id}/files` (upload JPG/PNG/PDF/DOCX/XLSX/PPTX/TXT, tối đa 10 MiB),
+`POST .../files/{file_id}/delete`, `GET .../files/{file_id}/download-url`. Request archived thì không
+upload file mới được (giống `REQUEST_ARCHIVED` của documents). Upload trả thẳng `download_url` +
+`expires_in=300` (signed URL Supabase private bucket, tự hết hạn) trong response, không cần gọi thêm API;
+gọi lại `download-url` để lấy link mới khi cái cũ hết hạn. Quyền: admin hoặc bất kỳ quyền `MECHANICAL_*`
+(CREATE/UPDATE/REMOVE/VIEW), áp dụng cho mọi endpoint. Cần chạy `migrations/007_service_files.sql` trước khi dùng.
+
 ## Phân tích tài liệu — đợt 2
 
 Đã thêm POST /document-requests/{id}/jobs, GET /document-jobs/{id} và lịch sử jobs.
