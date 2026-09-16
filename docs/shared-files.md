@@ -5,7 +5,7 @@
 Chạy `migrations/008_shared_uploads.sql` một lần sau 006/007, rồi deploy backend.
 Tạo bảng portal_uploaded_files và bucket private portal_uploads riêng. Không thay đổi
 portal_files, portal_documents hoặc API upload tài liệu cũ. Không thêm dịch vụ hay dependency.
-Chưa có worker/import Excel ở bước này; upload không ghi dữ liệu sản phẩm.
+Upload không ghi dữ liệu sản phẩm. Bước đọc/so sánh đã được bổ sung riêng trong [product-import-preview.md](product-import-preview.md).
 
 ## Phạm vi
 
@@ -23,7 +23,8 @@ allowlist SQL/bucket bằng migration; không cho FE tự chọn bucket hoặc s
 Upload: PRODUCT_IMPORT hoặc super admin. Đọc/xóa/tải: chủ file còn PRODUCT_IMPORT
 hoặc super admin. PRODUCT_VIEW hay PRODUCT_IMPORT_APPLY riêng lẻ chưa cấp quyền truy cập
 file của người khác ở bước này. User inactive/first-login bị chặn ở API và RPC.
-Sau này job import cần tích hợp quyền người duyệt và chặn xóa file đang được sử dụng.
+Migration 009 chặn xóa file gắn với job queued/processing/preview_ready (409 FILE_IN_USE).
+Quyền người duyệt apply sẽ tích hợp ở bước xác nhận nhập sau.
 
 ## API
 

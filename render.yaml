@@ -18,3 +18,4 @@ services:
 # Analysis is opt-in. After migration 004, set GEMINI_API_KEY,
 # GEMINI_MODEL=gemini-3.6-flash and ANALYSIS_WORKER_ENABLED=true in Render Environment.
 # The embedded worker runs only while this web service is awake.
+# After migration 009, set PRODUCT_IMPORT_WORKER_ENABLED=true for product previews.

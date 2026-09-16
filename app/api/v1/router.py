@@ -20,3 +20,6 @@ api_router.include_router(document_review_router)
 
 from app.api.v1.files import router as files_router
 api_router.include_router(files_router)
+
+from app.api.v1.product_imports import router as product_imports_router
+api_router.include_router(product_imports_router)

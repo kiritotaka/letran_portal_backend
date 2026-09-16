@@ -12,7 +12,7 @@ class FileRepository:
                 'p_data':data or {}}).execute().data
         except APIError as exc:
             codes={'FORBIDDEN':403,'FILE_NOT_FOUND':404,'IDEMPOTENCY_CONFLICT':409,
-                   'FILE_DELETED':409,'INVALID_INPUT':422}
+                   'FILE_DELETED':409,'FILE_IN_USE':409,'INVALID_INPUT':422}
             if exc.message in codes:
                 raise ApiError(codes[exc.message],exc.message,exc.message.replace('_',' ').capitalize()+'.') from None
             if exc.code in {'PGRST202','PGRST205','42P01'}:

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = Field(default="gemini-3.6-flash", pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$")
     analysis_worker_enabled: bool = False
+    product_import_worker_enabled: bool = False
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
     @field_validator("supabase_url", mode="before")
