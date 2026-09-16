@@ -25,6 +25,9 @@ router = APIRouter(tags=["documents"], dependencies=[Depends(no_cache)],
     responses={code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 413, 415, 422, 503)})
 Viewer = Annotated[Principal, Depends(require_any_permission("DOC_VIEW"))]
 Creator = Annotated[Principal, Depends(require_any_permission("DOC_CREATE"))]
+# Mechanical workshop staff may upload files via any MECHANICAL_* permission, alongside DOC_CREATE.
+Uploader = Annotated[Principal, Depends(require_any_permission(
+    "DOC_CREATE", "MECHANICAL_CREATE", "MECHANICAL_UPDATE", "MECHANICAL_REMOVE", "MECHANICAL_VIEW"))]
 Editor = Annotated[Principal, Depends(require_any_permission("DOC_UPDATE"))]
 Remover = Annotated[Principal, Depends(require_any_permission("DOC_REMOVE"))]
 CatalogReader = Annotated[Principal, Depends(require_any_permission("DOC_VIEW", "DOC_CREATE", "DOC_UPDATE"))]
@@ -90,7 +93,7 @@ def documents(request_id: UUID, actor: Viewer, client: SDK, params: Page):
 
 
 @router.post("/document-requests/{request_id}/documents/{document_id}/files", response_model=DocumentResponse[FileItem])
-def upload(request_id: UUID, document_id: UUID, actor: Creator, client: SDK,
+def upload(request_id: UUID, document_id: UUID, actor: Uploader, client: SDK,
            idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
            file: Annotated[UploadFile, File()], sort_order: Annotated[int, Form(ge=1, le=10000)] = 1):
     try:
